@@ -111,7 +111,9 @@ class NotificationManager
                 return new PusherChannel(new Pusher());
         }
 
-        // Resolve driver by convenience naming style
+        // Resolve driver by convenience naming style:
+        // Channel Driver: App\Services\Notification\Channels\TelegramChannel
+        // Channel Config: App\Config\Telegram
         $guessedClass = ucfirst($channel);
         $channelNamespace = "App\\Services\\Notification\\Channels\\{$guessedClass}Channel";
         $configNamespace = "App\\Config\\{$guessedClass}";

@@ -24,10 +24,17 @@ trait ReceiveNotification
      */
     public function keyNotification(string $channel, $notification = null)
     {
+        /**
+         * Find method that return key of notifier:
+         * keyNotificationWhatsapp() or keyNotificationMail() where class use this traits
+         */
         if (method_exists($this, $method = 'keyNotification' . ucfirst($channel))) {
             return $this->{$method}($notification);
         }
 
+        /**
+         * Get from stocked channel and default field of the object.
+         */
         switch ($channel) {
             case 'array':
             case 'database':
