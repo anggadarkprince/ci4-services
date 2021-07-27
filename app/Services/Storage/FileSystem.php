@@ -1,11 +1,16 @@
 <?php
 
-
 namespace App\Services\Storage;
-
 
 interface FileSystem
 {
+    /**
+     * Get driver client.
+     *
+     * @return mixed
+     */
+    public function getClient();
+
     /**
      * Store or put file into storage.
      *

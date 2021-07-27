@@ -5,6 +5,7 @@ namespace App\Services\Storage\Drivers;
 use App\Config\Storage;
 use App\Services\Storage\Exceptions\StorageException;
 use App\Services\Storage\FileSystem;
+use Aws\Result;
 use Aws\S3\Exception\S3Exception;
 use Aws\S3\S3Client;
 use CodeIgniter\HTTP\Files\UploadedFile;
@@ -38,6 +39,16 @@ class S3Disk implements FileSystem
         ]);
 
         $this->bucket = $config->s3['bucket'];
+    }
+
+    /**
+     * Get driver client.
+     *
+     * @return S3Client
+     */
+    public function getClient()
+    {
+        return $this->s3;
     }
 
     /**
@@ -198,6 +209,10 @@ class S3Disk implements FileSystem
      */
     public function move($keySource, $keyDestination, $options = [])
     {
+        if (strpos($keySource,'/') !== false) {
+            return $this->moveObjects($keySource, $keyDestination, $options);
+        }
+
         $sourceBucket = $options['sourceBucket'] ?? $this->bucket;
 
         $result = $this->copy($keySource, $keyDestination, $options);
@@ -213,16 +228,80 @@ class S3Disk implements FileSystem
     }
 
     /**
+     * Move directories objects.
+     *
+     * @param $keySource
+     * @param $keyDestination
+     * @param array $options
+     * @return Result
+     */
+    public function moveObjects($keySource, $keyDestination, $options = [])
+    {
+        $sourceBucket = $options['sourceBucket'] ?? $this->bucket;
+
+        $keySource = rtrim($keySource, '/') . '/';
+        $keyDestination = rtrim($keyDestination, '/') . '/';
+
+        $results = $this->s3->listObjects([
+            'Bucket' => $sourceBucket,
+            'Prefix' => $keySource,
+        ]);
+
+        $movedKeys = [];
+        foreach ($results['Contents'] ?: [] as $file) {
+            $targetKeyDest = str_replace($keySource, $keyDestination, $file['Key']);
+            $copyResult = $this->copy($file['Key'], $targetKeyDest, $options);
+            if ($copyResult) {
+                $movedKeys[] = ['Key' => $file['Key']];
+            }
+        }
+
+        return $this->deleteObjects($movedKeys);
+    }
+
+    /**
      * Delete data inside s3 storage.
      *
      * @param $key
-     * @return mixed
+     * @return Result
      */
     public function delete($key)
     {
+        if (is_array($key)) {
+            return $this->deleteObjects($key);
+        }
+
         return $this->s3->deleteObject([
             'Bucket' => $this->bucket,
             'Key' => $key,
         ]);
     }
+
+    /**
+     * Delete multiple objects from storage.
+     *
+     * @param $keys
+     * @return Result
+     */
+    public function deleteObjects($keys)
+    {
+        return $this->s3->deleteObjects([
+            'Bucket' => $this->bucket,
+            'Delete' => [
+                'Objects' => $keys
+            ],
+        ]);
+    }
+
+    /**
+     * Delete multiple objects by matching pattern of key from storage.
+     *
+     * @param $matchKey
+     * @return void
+     */
+    public function deleteMatchingObjects($matchKey)
+    {
+        $this->s3->deleteMatchingObjects($matchKey);
+    }
+
 }

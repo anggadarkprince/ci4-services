@@ -43,6 +43,16 @@ class PublicDisk implements FileSystem
     }
 
     /**
+     * Get driver client.
+     *
+     * @return mixed
+     */
+    public function getClient()
+    {
+        return null;
+    }
+
+    /**
      * Store or put file into storage.
      *
      * @param $content
