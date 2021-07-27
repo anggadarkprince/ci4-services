@@ -209,7 +209,7 @@ class S3Disk implements FileSystem
      */
     public function move($keySource, $keyDestination, $options = [])
     {
-        if (strpos($keySource,'/') !== false) {
+        if (preg_match('/\/$/', $keySource)) {
             return $this->moveObjects($keySource, $keyDestination, $options);
         }
 
